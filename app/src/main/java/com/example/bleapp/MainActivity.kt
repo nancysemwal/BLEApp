@@ -1,5 +1,6 @@
 package com.example.bleapp
 
+import android.bluetooth.BluetoothDevice
 import android.companion.AssociationRequest
 import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
@@ -30,6 +31,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.core.app.ActivityCompat.startIntentSenderForResult
 import java.util.regex.Pattern
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -94,7 +96,7 @@ fun PairingScreen(
             else -> false
         }
         val contract = ActivityResultContracts.StartIntentSenderForResult()
-        val activityResultLauncher =
+        /*val activityResultLauncher =
             rememberLauncherForActivityResult(contract = contract) {
                 it.data
                     ?.getParcelableExtra<ScanResult>(CompanionDeviceManager.EXTRA_DEVICE)
@@ -105,7 +107,28 @@ fun PairingScreen(
                         //val device = scanResult.device
                         //setDeviceAddress(device.address)
                     }
+            }*/
+        val activityResultLauncher = rememberLauncherForActivityResult(
+            contract = contract,
+            onResult = {
+                val device: BluetoothDevice? =
+                    it.data?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
+                try {
+                    // Now that you have the desired device, do what you need to with it
+                    device?.apply {
+                        when {
+                            name?.matches(Regex("Bhajanollas")) == true -> {
+                                setPairingStatus(PairingStatus.Paired)
+                            }
+                        }
+                    }
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                    //TODO: handle the security exception (this is possibly a bug)
+                    // https://issuetracker.google.com/issues/198986283
+                }
             }
+        )
 
         Button(onClick = {
             if(pairingStatus == PairingStatus.NotPaired) {
@@ -119,6 +142,11 @@ fun PairingScreen(
                                 activityResultLauncher.launch(request)
                             }
                         }
+                        /*override fun onDeviceFound(chooserLauncher: IntentSender) {
+                            startIntentSenderForResult(chooserLauncher,
+                                0, null, 0, 0, 0)
+                        }*/
+
 
                         override fun onFailure(error: CharSequence?) {
                             setPairingStatus(PairingStatus.PairingFailed)
